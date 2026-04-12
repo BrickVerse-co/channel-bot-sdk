@@ -1,0 +1,46 @@
+{
+	"name": "@metagames/channel-bot-sdk",
+	"version": "1.0.0",
+	"description": "Brickverse guild channel bot SDK",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"sideEffects": false,
+	"engines": {
+		"node": ">=18.0.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/BrickVerse-co/channel-bot-sdk.git"
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"docs"
+	],
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"type-check": "tsc -p tsconfig.json --noEmit"
+	},
+	"keywords": [
+		"brickverse",
+		"bot",
+		"guild",
+		"sdk"
+	],
+	"license": "Apache-2.0",
+	"author": "Meta Games LLC",
+	"devDependencies": {
+		"typescript": "^5.9.3"
+	},
+	"bugs": {
+		"url": "https://github.com/BrickVerse-co/channel-bot-sdk/issues"
+	},
+	"homepage": "https://github.com/BrickVerse-co/channel-bot-sdk#readme"
+}
