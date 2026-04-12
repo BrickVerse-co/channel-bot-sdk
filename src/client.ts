@@ -10,6 +10,8 @@ import { CommandRouter } from "./commands";
 import type {
 	ChannelBotClientOptions,
 	ChannelBotEmbed,
+	GuildBotSlashCommand,
+	GuildBotSlashCommandOption,
 	ChannelBotMessage,
 	ChannelBotMessageInput,
 	GuildBotMeResponse,
@@ -217,6 +219,27 @@ export class ChannelBotClient {
 	deleteMessage(messageId: string) {
 		return this.request<{ success: boolean }>(
 			`/v3/social/guild-bots/@me/messages/${messageId}`,
+			{ method: "DELETE" },
+		);
+	}
+
+	createSlashCommand(input: {
+		name: string;
+		description: string;
+		options?: GuildBotSlashCommandOption[];
+	}) {
+		return this.request<{ success: boolean; command: GuildBotSlashCommand }>(
+			"/v3/social/guild-bots/@me/commands",
+			{
+				method: "POST",
+				body: input,
+			},
+		);
+	}
+
+	deleteSlashCommand(commandId: string) {
+		return this.request<{ success: boolean }>(
+			`/v3/social/guild-bots/@me/commands/${commandId}`,
 			{ method: "DELETE" },
 		);
 	}

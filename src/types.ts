@@ -96,6 +96,7 @@ export type GuildBotMeResponse = {
 		id: string;
 		username: string;
 		description: string | null;
+		isPublic?: boolean;
 		logoId: string | null;
 		creatorId: string;
 		creatorType: string;
@@ -107,6 +108,20 @@ export type GuildBotMeResponse = {
 		description: string;
 		options?: unknown;
 	}>;
+};
+
+export type GuildBotSlashCommandOption = {
+	type?: string;
+	name: string;
+	description?: string;
+	required?: boolean;
+};
+
+export type GuildBotSlashCommand = {
+	id: string;
+	name: string;
+	description: string;
+	options?: unknown;
 };
 
 export type ChannelBotClientOptions = {

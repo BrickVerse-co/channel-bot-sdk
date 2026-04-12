@@ -62,6 +62,8 @@ The command handler receives a `CommandContext` with:
 - `client.sendEmbed({ guildId, channelId, embed, content })`
 - `client.editMessage(messageId, { content, embeds })`
 - `client.deleteMessage(messageId)`
+- `client.createSlashCommand({ name, description, options })`
+- `client.deleteSlashCommand(commandId)`
 
 ## Docs
 

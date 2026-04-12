@@ -12,6 +12,8 @@ export type {
 	ChannelBotEmbedField,
 	ChannelBotMessage,
 	ChannelBotMessageInput,
+	GuildBotSlashCommand,
+	GuildBotSlashCommandOption,
 	GuildBotInteraction,
 	GuildBotMeResponse,
 	GuildBotSocketEvent,
