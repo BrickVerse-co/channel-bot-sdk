@@ -101,7 +101,11 @@ export type GuildBotMeResponse = {
 		creatorId: string;
 		creatorType: string;
 	};
-	installations: Array<{ guildId: string; guildName: string }>;
+	installations: Array<{
+		guildId: string;
+		guildName: string;
+		permissions?: string;
+	}>;
 	commands: Array<{
 		id: string;
 		name: string;
