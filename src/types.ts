@@ -34,6 +34,17 @@ export type ChannelBotMessage = {
 	sender: {
 		id: string;
 		username: string;
+		permissions?: string;
+		isPlatformAdmin?: boolean;
+		isGuildOwner?: boolean;
+		isGuildAdmin?: boolean;
+		rank?: {
+			id: string;
+			name: string;
+			rankLevel: number;
+			color?: string | null;
+			permissions?: string;
+		} | null;
 	};
 };
 
@@ -45,7 +56,66 @@ export type GuildBotInteraction = {
 	user: {
 		id: string;
 		username: string;
+		permissions?: string;
+		rankLevel?: number;
+		isPlatformAdmin?: boolean;
+		isGuildOwner?: boolean;
+		isGuildAdmin?: boolean;
 	};
+};
+
+export type GuildBotInstallationEvent = {
+	type: "guildBot.installationCreate" | "guildBot.installationDelete";
+	guildId: string;
+	guildName: string;
+	permissions?: string;
+	installedByUserId?: string;
+	uninstalledByUserId?: string;
+};
+
+export type GuildBotMemberEvent =
+	| {
+			type: "guildBot.memberJoin" | "guildBot.memberLeave";
+			guildId: string;
+			userId: string;
+			reason?: string;
+	  }
+	| {
+			type: "guildBot.memberKick";
+			guildId: string;
+			userId: string;
+			actorUserId?: string;
+			reason?: string;
+	  }
+	| {
+			type: "guildBot.memberBan";
+			guildId: string;
+			userId: string;
+			actorUserId?: string;
+			reason?: string;
+			expiresAt?: string | null;
+	  }
+	| {
+			type: "guildBot.memberTimeout";
+			guildId: string;
+			userId: string;
+			actorUserId?: string;
+			timeoutUntil: string | null;
+			reason?: string;
+	  }
+	| {
+			type: "guildBot.memberRankUpdate";
+			guildId: string;
+			userId: string;
+			actorUserId?: string;
+			fromRankId?: string | null;
+			toRankId: string;
+	  };
+
+export type GuildBotMemberTimeoutResponse = {
+	success: boolean;
+	timeoutUntil?: string;
+	message?: string;
 };
 
 export type GuildBotSocketEvent =
@@ -59,7 +129,12 @@ export type GuildBotSocketEvent =
 			requestId?: string;
 	  }
 	| {
+			type: "guildBot.subscriptionsUpdated";
+			events: string[];
+	  }
+	| {
 			type: "guildBot.messageCreate";
+
 			guildId: string;
 			channelId: string;
 			message: ChannelBotMessage;
@@ -92,7 +167,50 @@ export type GuildBotSocketEvent =
 			guildId: string;
 			channelId: string;
 			interaction: GuildBotInteraction;
+	  }
+	| {
+			type: "guildBot.installationCreate";
+			guildId: string;
+			guildName: string;
+			permissions: string;
+			installedByUserId: string;
+	  }
+	| {
+			type: "guildBot.installationDelete";
+			guildId: string;
+			guildName: string;
+			uninstalledByUserId: string;
+	  }
+	| GuildBotMemberEvent
+	| {
+			type: "guildBot.auditLogCreate";
+			guildId: string;
+			auditLog: {
+				id: string;
+				action: string;
+				userId?: string | null;
+				details?: unknown;
+				createdAt?: string;
+			};
 	  };
+
+export type GuildBotCommandErrorEvent = {
+	type: "guildBot.commandError";
+	error: unknown;
+	event: Extract<GuildBotSocketEvent, { type: "guildBot.interactionCreate" }>;
+};
+
+export type GuildBotDisconnectedEvent = {
+	type: "disconnected";
+};
+
+export type ChannelBotEventMap = {
+	raw: GuildBotSocketEvent;
+	disconnected: GuildBotDisconnectedEvent;
+	"guildBot.commandError": GuildBotCommandErrorEvent;
+} & {
+	[K in GuildBotSocketEvent["type"]]: Extract<GuildBotSocketEvent, { type: K }>;
+};
 
 export type GuildBotMeResponse = {
 	success: boolean;
@@ -140,6 +258,9 @@ export type ChannelBotClientOptions = {
 	WebSocketImpl?: typeof WebSocket;
 	autoReconnect?: boolean;
 	reconnectDelayMs?: number;
+	autoRegisterCommands?: boolean;
+	pruneMissingCommands?: boolean;
+	subscribedEvents?: string[];
 };
 
 export type ChannelBotMessageInput = {

@@ -11,6 +11,8 @@ All events are available through `client.on(eventName, listener)`.
 - `guildBot.messageDelete`
 - `guildBot.reactionUpdate`
 - `guildBot.interactionCreate`
+- `guildBot.installationCreate`
+- `guildBot.installationDelete`
 
 ## Utility events
 
@@ -23,5 +25,13 @@ All events are available through `client.on(eventName, listener)`.
 ```ts
 client.on("guildBot.interactionCreate", async (event) => {
 	console.log(event.interaction.commandName);
+});
+
+client.on("guildBot.installationCreate", (event) => {
+	console.log(`Installed in ${event.guildName} (${event.guildId})`);
+});
+
+client.on("guildBot.installationDelete", (event) => {
+	console.log(`Uninstalled from ${event.guildName} (${event.guildId})`);
 });
 ```

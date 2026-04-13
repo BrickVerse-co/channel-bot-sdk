@@ -5,9 +5,16 @@ import type {
 	ChannelBotMessage,
 	ChannelBotMessageInput,
 	GuildBotInteraction,
+	GuildBotSlashCommandOption,
 	GuildBotSocketEvent,
 } from "./types";
 import type { ChannelBotClient } from "./client";
+import {
+	hasAllPermissions,
+	hasAnyPermission,
+	hasPermission,
+} from "./permissions";
+import type { GuildPermission } from "./permissions";
 
 export class CommandContext {
 	readonly client: ChannelBotClient;
@@ -66,25 +73,159 @@ export class CommandContext {
 			embeds: [embed],
 		});
 	}
+
+	followUp(input: string | { content?: string; embeds?: ChannelBotEmbed[] }) {
+		if (typeof input === "string") {
+			return this.client.sendFollowUp({
+				guildId: this.guildId,
+				channelId: this.channelId,
+				interactionId: this.interaction.interactionId,
+				content: input,
+			});
+		}
+
+		return this.client.sendFollowUp({
+			guildId: this.guildId,
+			channelId: this.channelId,
+			interactionId: this.interaction.interactionId,
+			content: input.content,
+			embeds: input.embeds,
+		});
+	}
+
+	replyEphemeral(
+		input: string | { content?: string; embeds?: ChannelBotEmbed[] },
+	) {
+		if (typeof input === "string") {
+			return this.client.sendEphemeralMessage({
+				guildId: this.guildId,
+				channelId: this.channelId,
+				userId: this.user.id,
+				content: input,
+			});
+		}
+
+		return this.client.sendEphemeralMessage({
+			guildId: this.guildId,
+			channelId: this.channelId,
+			userId: this.user.id,
+			content: input.content,
+			embeds: input.embeds,
+		});
+	}
+
+	followUpEphemeral(
+		input: string | { content?: string; embeds?: ChannelBotEmbed[] },
+	) {
+		if (typeof input === "string") {
+			return this.client.sendFollowUp({
+				guildId: this.guildId,
+				channelId: this.channelId,
+				interactionId: this.interaction.interactionId,
+				content: input,
+				ephemeralForUserId: this.user.id,
+			});
+		}
+
+		return this.client.sendFollowUp({
+			guildId: this.guildId,
+			channelId: this.channelId,
+			interactionId: this.interaction.interactionId,
+			content: input.content,
+			embeds: input.embeds,
+			ephemeralForUserId: this.user.id,
+		});
+	}
+
+	timeoutMember(userId: string, durationMinutes: number) {
+		return this.client.timeoutMember({
+			guildId: this.guildId,
+			userId,
+			durationMinutes,
+		});
+	}
+
+	clearMemberTimeout(userId: string) {
+		return this.client.clearMemberTimeout({
+			guildId: this.guildId,
+			userId,
+		});
+	}
+
+	hasPermission(permission: GuildPermission) {
+		return hasPermission(this.user.permissions, permission);
+	}
+
+	hasAnyPermission(permissions: GuildPermission[]) {
+		return hasAnyPermission(this.user.permissions, permissions);
+	}
+
+	hasAllPermissions(permissions: GuildPermission[]) {
+		return hasAllPermissions(this.user.permissions, permissions);
+	}
+
+	canManageMembers() {
+		return (
+			this.user.isPlatformAdmin === true ||
+			this.user.isGuildOwner === true ||
+			this.user.isGuildAdmin === true
+		);
+	}
 }
 
 export type CommandHandler = (
 	ctx: CommandContext,
 ) => Promise<unknown> | unknown;
 
+export type CommandRegistration = {
+	name: string;
+	description: string;
+	options?: GuildBotSlashCommandOption[];
+};
+
 export class CommandRouter {
 	private readonly handlers = new Map<string, CommandHandler>();
+	private readonly registrations = new Map<string, CommandRegistration>();
 
-	command(name: string, handler: CommandHandler): this {
+	command(
+		name: string,
+		handler: CommandHandler,
+		metadata?: {
+			description?: string;
+			options?: GuildBotSlashCommandOption[];
+		},
+	): this {
 		const normalized = name.trim().toLowerCase();
 		if (!normalized) throw new Error("Command name is required");
+		if (this.handlers.has(normalized)) {
+			console.warn(`Overwriting existing command handler for /${normalized}`);
+		}
+
 		this.handlers.set(normalized, handler);
+
+		this.registrations.set(normalized, {
+			name: normalized,
+			description:
+				metadata?.description?.trim() ||
+				`Auto-registered command /${normalized}`,
+			options:
+				Array.isArray(metadata?.options) && metadata?.options.length > 0
+					? metadata.options
+					: undefined,
+		});
+
 		return this;
 	}
 
 	remove(name: string): this {
-		this.handlers.delete(name.trim().toLowerCase());
+		const normalized = name.trim().toLowerCase();
+		this.handlers.delete(normalized);
+		this.registrations.delete(normalized);
 		return this;
+	}
+
+	getCommandRegistrations(): CommandRegistration[] {
+		return [...this.registrations.values()];
 	}
 
 	async handle(
@@ -94,6 +235,7 @@ export class CommandRouter {
 		const handler = this.handlers.get(
 			event.interaction.commandName.toLowerCase(),
 		);
+
 		if (!handler) return false;
 
 		await handler(
@@ -104,6 +246,7 @@ export class CommandRouter {
 				interaction: event.interaction,
 			}),
 		);
+		
 		return true;
 	}
 }

@@ -2,6 +2,14 @@
 
 export { ChannelBotClient } from "./client";
 export {
+	GuildPermissions,
+	hasPermission,
+	hasAnyPermission,
+	hasAllPermissions,
+	parsePermissions,
+} from "./permissions";
+export type { GuildPermission } from "./permissions";
+export {
 	CommandContext,
 	CommandRouter,
 	messageInputFromInteraction,
@@ -15,6 +23,12 @@ export type {
 	GuildBotSlashCommand,
 	GuildBotSlashCommandOption,
 	GuildBotInteraction,
+	GuildBotInstallationEvent,
+	GuildBotMemberEvent,
+	GuildBotMemberTimeoutResponse,
+	GuildBotCommandErrorEvent,
+	GuildBotDisconnectedEvent,
+	ChannelBotEventMap,
 	GuildBotMeResponse,
 	GuildBotSocketEvent,
 } from "./types";

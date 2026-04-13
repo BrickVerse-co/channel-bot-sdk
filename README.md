@@ -10,6 +10,12 @@ TypeScript SDK for building Brickverse guild channel bots.
 - Typed event payloads
 - Examples and docs
 
+## Creating a Bot Account
+A BrickVerse.gg bot account is required, you can create one for free at https://brickverse.gg/my/guild-bots.
+
+### Getting your bot verified
+Verifications are issued at the discretion of BrickVerse automatically, we only grant verification checkmark to tools being popularly used in large amount of guilds, official partnerships, etc.
+
 ## Install
 
 ```bash
@@ -43,6 +49,34 @@ client.on("guildBot.ready", (event) => {
 await client.connect();
 ```
 
+## Permission-Aware Events
+
+Interaction and message events now include guild permission context for users.
+
+- `event.interaction.user.permissions` (string bitfield)
+- `event.interaction.user.rankLevel`
+- `event.interaction.user.isPlatformAdmin`
+- `event.interaction.user.isGuildOwner`
+- `event.interaction.user.isGuildAdmin`
+
+You can use SDK helpers to check permissions:
+
+```ts
+import { GuildPermissions, hasAnyPermission } from "@metagames/channel-bot-sdk";
+
+client.on("guildBot.interactionCreate", async (event) => {
+	if (
+		event.interaction.user.isPlatformAdmin ||
+		hasAnyPermission(event.interaction.user.permissions, [
+			GuildPermissions.ADMINISTRATOR,
+			GuildPermissions.MANAGE_MEMBERS,
+		])
+	) {
+		console.log("User can manage members");
+	}
+});
+```
+
 ## Command Reply Helpers
 
 The command handler receives a `CommandContext` with:
@@ -51,6 +85,66 @@ The command handler receives a `CommandContext` with:
 - `ctx.reply({ content, embeds })`
 - `ctx.replyMention("text")`
 - `ctx.replyEmbed(embed, optionalContent)`
+- `ctx.followUp("text")`
+- `ctx.timeoutMember(userId, durationMinutes)`
+- `ctx.clearMemberTimeout(userId)`
+- `ctx.hasPermission(permission)`
+- `ctx.hasAnyPermission(permissions)`
+- `ctx.hasAllPermissions(permissions)`
+- `ctx.canManageMembers()`
+
+## Automatic Slash Command Registration
+
+When you use `CommandRouter`, the SDK now auto-registers missing slash commands on connect by calling `createSlashCommand()` for each router command.
+
+```ts
+const client = new ChannelBotClient({
+	token: process.env.BOT_TOKEN!,
+	apiBaseUrl: "https://api.brickverse.gg",
+	autoRegisterCommands: true, // default true
+	pruneMissingCommands: false, // default false
+});
+
+const router = new CommandRouter()
+	.command(
+		"ping",
+		async (ctx) => {
+			await ctx.replyMention("pong");
+		},
+		{ description: "Health check" },
+	)
+	.command(
+		"timeout",
+		async (ctx) => {
+			const userId = ctx.args[0];
+			const minutes = Number(ctx.args[1] || "10");
+			if (!userId) {
+				await ctx.reply("Usage: /timeout <userId> [minutes]");
+				return;
+			}
+			await ctx.timeoutMember(userId, Math.max(1, minutes));
+			await ctx.followUp(`Timed out ${userId} for ${Math.max(1, minutes)}m`);
+		},
+		{
+			description: "Timeout a guild member",
+			options: [
+				{
+					name: "userId",
+					required: true,
+					description: "Target member user id",
+				},
+				{
+					name: "minutes",
+					required: false,
+					description: "Duration in minutes",
+				},
+			],
+		},
+	);
+
+client.useCommandRouter(router);
+await client.connect();
+```
 
 ## API Surface
 
@@ -64,6 +158,23 @@ The command handler receives a `CommandContext` with:
 - `client.deleteMessage(messageId)`
 - `client.createSlashCommand({ name, description, options })`
 - `client.deleteSlashCommand(commandId)`
+- `client.syncCommandRouterSlashCommands()`
+- `client.timeoutMember({ guildId, userId, durationMinutes })`
+- `client.clearMemberTimeout({ guildId, userId })`
+
+## Installation Lifecycle Events
+
+```ts
+client.on("guildBot.installationCreate", (event) => {
+	console.log(
+		`Installed in ${event.guildName} (${event.guildId}) with ${event.permissions}`,
+	);
+});
+
+client.on("guildBot.installationDelete", (event) => {
+	console.log(`Uninstalled from ${event.guildName} (${event.guildId})`);
+});
+```
 
 ## Docs
 

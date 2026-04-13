@@ -7,12 +7,23 @@ Create a guild bot in the Brickverse dashboard and copy its token.
 ## 2. Initialize the client
 
 ```ts
-import { ChannelBotClient } from "@metagames/channel-bot-sdk";
+import { ChannelBotClient, CommandRouter } from "@metagames/channel-bot-sdk";
 
 const client = new ChannelBotClient({
 	token: process.env.BOT_TOKEN!,
 	apiBaseUrl: "https://api.brickverse.gg",
+	autoRegisterCommands: true,
 });
+
+const router = new CommandRouter().command(
+	"ping",
+	async (ctx) => {
+		await ctx.replyMention("pong");
+	},
+	{ description: "Health check" },
+);
+
+client.useCommandRouter(router);
 ```
 
 ## 3. Listen to events
@@ -24,6 +35,14 @@ client.on("guildBot.ready", (event) => {
 
 client.on("guildBot.messageCreate", (event) => {
 	console.log(event.message.content);
+});
+
+client.on("guildBot.installationCreate", (event) => {
+	console.log(`Installed in ${event.guildName} (${event.guildId})`);
+});
+
+client.on("guildBot.installationDelete", (event) => {
+	console.log(`Uninstalled from ${event.guildName} (${event.guildId})`);
 });
 ```
 

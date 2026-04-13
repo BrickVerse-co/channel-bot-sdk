@@ -14,7 +14,9 @@ import type {
 	GuildBotSlashCommandOption,
 	ChannelBotMessage,
 	ChannelBotMessageInput,
+	ChannelBotEventMap,
 	GuildBotMeResponse,
+	GuildBotMemberTimeoutResponse,
 	GuildBotSocketEvent,
 } from "./types";
 
@@ -26,6 +28,9 @@ export class ChannelBotClient {
 	private readonly WebSocketImpl: typeof WebSocket;
 	private readonly autoReconnect: boolean;
 	private readonly reconnectDelayMs: number;
+	private readonly autoRegisterCommands: boolean;
+	private readonly pruneMissingCommands: boolean;
+	private readonly subscribedEvents: string[];
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 	private manuallyClosed = false;
 	private ws: WebSocket | null = null;
@@ -48,24 +53,46 @@ export class ChannelBotClient {
 		this.WebSocketImpl = options.WebSocketImpl || WebSocket;
 		this.autoReconnect = options.autoReconnect !== false;
 		this.reconnectDelayMs = Math.max(250, options.reconnectDelayMs || 2500);
+		this.autoRegisterCommands = options.autoRegisterCommands !== false;
+		this.pruneMissingCommands = options.pruneMissingCommands === true;
+		this.subscribedEvents = Array.isArray(options.subscribedEvents)
+			? options.subscribedEvents.filter(
+					(eventName) =>
+						typeof eventName === "string" && eventName.trim().length > 0,
+				)
+			: [];
 	}
 
-	on<TEvent = GuildBotSocketEvent>(
-		eventName: string,
-		listener: (event: TEvent) => void,
+	on<K extends keyof ChannelBotEventMap>(
+		eventName: K,
+		listener: (event: ChannelBotEventMap[K]) => void,
 	) {
-		return this.events.on<TEvent>(eventName, listener);
+		return this.events.on<ChannelBotEventMap[K]>(eventName as string, listener);
 	}
 
-	off<TEvent = GuildBotSocketEvent>(
-		eventName: string,
-		listener: (event: TEvent) => void,
+	off<K extends keyof ChannelBotEventMap>(
+		eventName: K,
+		listener: (event: ChannelBotEventMap[K]) => void,
 	) {
-		return this.events.off<TEvent>(eventName, listener);
+		return this.events.off<ChannelBotEventMap[K]>(
+			eventName as string,
+			listener,
+		);
 	}
 
 	useCommandRouter(router: CommandRouter) {
 		this.commandRouter = router;
+
+		if (this.ws && this.ws.readyState === 1) {
+			if (this.subscribedEvents.length > 0) {
+				this.subscribeToEvents(this.subscribedEvents);
+			}
+
+			if (this.autoRegisterCommands) {
+				void this.syncCommandRouterSlashCommands().catch(() => {});
+			}
+		}
+
 		return this;
 	}
 
@@ -76,6 +103,7 @@ export class ChannelBotClient {
 		await new Promise<void>((resolve, reject) => {
 			const ws = new this.WebSocketImpl(this.websocketUrl);
 			this.ws = ws;
+
 			let resolved = false;
 
 			ws.onopen = () => {
@@ -90,7 +118,8 @@ export class ChannelBotClient {
 				let parsed: GuildBotSocketEvent;
 				try {
 					parsed = JSON.parse(String(rawEvent.data)) as GuildBotSocketEvent;
-				} catch {
+				} catch(err) {
+					console.error("Failed to parse guild bot websocket message", err);
 					return;
 				}
 
@@ -112,7 +141,22 @@ export class ChannelBotClient {
 
 				if (parsed.type === "guildBot.ready" && !resolved) {
 					resolved = true;
-					resolve();
+					if (this.subscribedEvents.length > 0) {
+						this.subscribeToEvents(this.subscribedEvents);
+					}
+					if (this.commandRouter && this.autoRegisterCommands) {
+						void this.syncCommandRouterSlashCommands()
+							.then(() => resolve())
+							.catch((error) => {
+								reject(
+									error instanceof Error
+										? error
+										: new Error("Failed to sync router slash commands"),
+								);
+							});
+					} else {
+						resolve();
+					}
 					return;
 				}
 
@@ -144,6 +188,7 @@ export class ChannelBotClient {
 
 	private scheduleReconnect() {
 		if (this.reconnectTimer) return;
+
 		this.reconnectTimer = setTimeout(() => {
 			this.reconnectTimer = null;
 			void this.connect().catch(() => {});
@@ -152,14 +197,27 @@ export class ChannelBotClient {
 
 	disconnect() {
 		this.manuallyClosed = true;
+
 		if (this.reconnectTimer) {
 			clearTimeout(this.reconnectTimer);
 			this.reconnectTimer = null;
 		}
+
 		if (this.ws) {
 			this.ws.close();
 			this.ws = null;
 		}
+	}
+
+	subscribeToEvents(events: string[]) {
+		if (!this.ws || this.ws.readyState !== 1) return;
+		console.debug("Subscribing to guild bot events:", events);
+		this.ws.send(
+			JSON.stringify({
+				type: "guildBot.subscribe",
+				events,
+			}),
+		);
 	}
 
 	private request<T>(
@@ -177,6 +235,39 @@ export class ChannelBotClient {
 
 	getMe() {
 		return this.request<GuildBotMeResponse>("/v3/social/guild-bots/@me");
+	}
+
+	async syncCommandRouterSlashCommands() {
+		if (!this.commandRouter) return;
+
+		const registrations = this.commandRouter.getCommandRegistrations();
+		if (registrations.length === 0) return;
+
+		const me = await this.getMe();
+		const existingByName = new Map(
+			(me.commands || []).map((command) => [
+				command.name.toLowerCase(),
+				command,
+			]),
+		);
+		const desiredNames = new Set(registrations.map((entry) => entry.name));
+
+		for (const registration of registrations) {
+			if (existingByName.has(registration.name)) continue;
+			await this.createSlashCommand({
+				name: registration.name,
+				description: registration.description,
+				options: registration.options,
+			});
+		}
+
+		if (this.pruneMissingCommands) {
+			for (const command of me.commands || []) {
+				if (!desiredNames.has(command.name.toLowerCase())) {
+					await this.deleteSlashCommand(command.id);
+				}
+			}
+		}
 	}
 
 	sendMessage(input: ChannelBotMessageInput) {
@@ -205,6 +296,22 @@ export class ChannelBotClient {
 			followUp: true,
 			followUpToInteractionId: input.interactionId,
 			ephemeralForUserId: input.ephemeralForUserId,
+		});
+	}
+
+	sendEphemeralMessage(input: {
+		guildId: string;
+		channelId: string;
+		userId: string;
+		content?: string;
+		embeds?: ChannelBotEmbed[];
+	}) {
+		return this.sendMessage({
+			guildId: input.guildId,
+			channelId: input.channelId,
+			content: input.content,
+			embeds: input.embeds,
+			ephemeralForUserId: input.userId,
 		});
 	}
 
@@ -259,6 +366,29 @@ export class ChannelBotClient {
 	deleteSlashCommand(commandId: string) {
 		return this.request<{ success: boolean }>(
 			`/v3/social/guild-bots/@me/commands/${commandId}`,
+			{ method: "DELETE" },
+		);
+	}
+
+	timeoutMember(input: {
+		guildId: string;
+		userId: string;
+		durationMinutes: number;
+	}) {
+		return this.request<GuildBotMemberTimeoutResponse>(
+			`/v3/social/guild-bots/@me/guilds/${input.guildId}/members/${input.userId}/timeout`,
+			{
+				method: "PUT",
+				body: {
+					durationMinutes: input.durationMinutes,
+				},
+			},
+		);
+	}
+
+	clearMemberTimeout(input: { guildId: string; userId: string }) {
+		return this.request<{ success: boolean; message?: string }>(
+			`/v3/social/guild-bots/@me/guilds/${input.guildId}/members/${input.userId}/timeout`,
 			{ method: "DELETE" },
 		);
 	}

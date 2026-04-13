@@ -12,8 +12,10 @@ export class EventEmitter {
 		listener: Listener<TEvent>,
 	) {
 		const listeners = this.listeners.get(eventName) || new Set();
+		
 		listeners.add(listener as Listener<any>);
 		this.listeners.set(eventName, listeners);
+
 		return () => this.off(eventName, listener);
 	}
 
@@ -23,7 +25,9 @@ export class EventEmitter {
 	) {
 		const listeners = this.listeners.get(eventName);
 		if (!listeners) return;
+
 		listeners.delete(listener as Listener<any>);
+
 		if (listeners.size === 0) {
 			this.listeners.delete(eventName);
 		}
