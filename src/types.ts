@@ -236,7 +236,7 @@ export type ChannelBotEventMap = {
 	"guildBot.commandError": GuildBotCommandErrorEvent;
 } & {
 	[K in GuildBotSocketEvent["type"]]: Extract<GuildBotSocketEvent, { type: K }>;
-};
+} & ChannelBotEventAliasMap;
 
 export type GuildBotMeResponse = {
 	success: boolean;
@@ -297,4 +297,62 @@ export type ChannelBotMessageInput = {
 	followUp?: boolean;
 	followUpToInteractionId?: string;
 	ephemeralForUserId?: string;
+};
+
+export type ChannelBotWebSocketState =
+	| "UNINITIALIZED"
+	| "CONNECTING"
+	| "OPEN"
+	| "CLOSING"
+	| "CLOSED";
+
+export type ChannelBotEventAliasMap = {
+	ready: Extract<GuildBotSocketEvent, { type: "guildBot.ready" }>;
+	error: Extract<GuildBotSocketEvent, { type: "guildBot.error" }>;
+	messageCreate: Extract<
+		GuildBotSocketEvent,
+		{ type: "guildBot.messageCreate" }
+	>;
+	messageUpdate: Extract<
+		GuildBotSocketEvent,
+		{ type: "guildBot.messageUpdate" }
+	>;
+	messageDelete: Extract<
+		GuildBotSocketEvent,
+		{ type: "guildBot.messageDelete" }
+	>;
+	reactionUpdate: Extract<
+		GuildBotSocketEvent,
+		{ type: "guildBot.reactionUpdate" }
+	>;
+	interactionCreate: Extract<
+		GuildBotSocketEvent,
+		{ type: "guildBot.interactionCreate" }
+	>;
+	guildCreate: Extract<
+		GuildBotSocketEvent,
+		{ type: "guildBot.installationCreate" }
+	>;
+	guildDelete: Extract<
+		GuildBotSocketEvent,
+		{ type: "guildBot.installationDelete" }
+	>;
+	memberAdd: Extract<GuildBotSocketEvent, { type: "guildBot.memberJoin" }>;
+	memberRemove: Extract<GuildBotSocketEvent, { type: "guildBot.memberLeave" }>;
+	memberKick: Extract<GuildBotSocketEvent, { type: "guildBot.memberKick" }>;
+	memberBan: Extract<GuildBotSocketEvent, { type: "guildBot.memberBan" }>;
+	memberTimeout: Extract<
+		GuildBotSocketEvent,
+		{ type: "guildBot.memberTimeout" }
+	>;
+	memberRankUpdate: Extract<
+		GuildBotSocketEvent,
+		{ type: "guildBot.memberRankUpdate" }
+	>;
+	auditLogCreate: Extract<
+		GuildBotSocketEvent,
+		{ type: "guildBot.auditLogCreate" }
+	>;
+	commandError: GuildBotCommandErrorEvent;
+	close: GuildBotDisconnectedEvent;
 };

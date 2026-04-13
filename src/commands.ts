@@ -16,6 +16,30 @@ import {
 } from "./permissions";
 import type { GuildPermission } from "./permissions";
 
+type CommandResponseData = {
+	content?: string;
+	embeds?: ChannelBotEmbed[];
+	ephemeral?: boolean;
+};
+
+function normalizeCommandResponseInput(
+	input: string | CommandResponseData,
+	options?: { ephemeral?: boolean },
+): CommandResponseData {
+	if (typeof input === "string") {
+		return {
+			content: input,
+			ephemeral: options?.ephemeral === true,
+		};
+	}
+
+	return {
+		content: input.content,
+		embeds: input.embeds,
+		ephemeral: options?.ephemeral === true || input.ephemeral === true,
+	};
+}
+
 export class CommandContext {
 	readonly client: ChannelBotClient;
 	readonly guildId: string;
@@ -46,20 +70,24 @@ export class CommandContext {
 		return this.interaction.user;
 	}
 
-	reply(input: string | { content?: string; embeds?: ChannelBotEmbed[] }) {
-		if (typeof input === "string") {
-			return this.client.sendMessage({
-				guildId: this.guildId,
-				channelId: this.channelId,
-				content: input,
-			});
-		}
-
+	reply(
+		input: string,
+		options?: { ephemeral?: boolean },
+	): ReturnType<ChannelBotClient["sendMessage"]>;
+	reply(
+		input: CommandResponseData,
+	): ReturnType<ChannelBotClient["sendMessage"]>;
+	reply(
+		input: string | CommandResponseData,
+		options?: { ephemeral?: boolean },
+	) {
+		const payload = normalizeCommandResponseInput(input, options);
 		return this.client.sendMessage({
 			guildId: this.guildId,
 			channelId: this.channelId,
-			content: input.content,
-			embeds: input.embeds,
+			content: payload.content,
+			embeds: payload.embeds,
+			ephemeralForUserId: payload.ephemeral ? this.user.id : undefined,
 		});
 	}
 
@@ -74,22 +102,25 @@ export class CommandContext {
 		});
 	}
 
-	followUp(input: string | { content?: string; embeds?: ChannelBotEmbed[] }) {
-		if (typeof input === "string") {
-			return this.client.sendFollowUp({
-				guildId: this.guildId,
-				channelId: this.channelId,
-				interactionId: this.interaction.interactionId,
-				content: input,
-			});
-		}
-
+	followUp(
+		input: string,
+		options?: { ephemeral?: boolean },
+	): ReturnType<ChannelBotClient["sendFollowUp"]>;
+	followUp(
+		input: CommandResponseData,
+	): ReturnType<ChannelBotClient["sendFollowUp"]>;
+	followUp(
+		input: string | CommandResponseData,
+		options?: { ephemeral?: boolean },
+	) {
+		const payload = normalizeCommandResponseInput(input, options);
 		return this.client.sendFollowUp({
 			guildId: this.guildId,
 			channelId: this.channelId,
 			interactionId: this.interaction.interactionId,
-			content: input.content,
-			embeds: input.embeds,
+			content: payload.content,
+			embeds: payload.embeds,
+			ephemeralForUserId: payload.ephemeral ? this.user.id : undefined,
 		});
 	}
 
@@ -246,7 +277,7 @@ export class CommandRouter {
 				interaction: event.interaction,
 			}),
 		);
-		
+
 		return true;
 	}
 }
@@ -265,5 +296,8 @@ export function messageInputFromInteraction(
 		channelId: event.channelId,
 		content: input.content,
 		embeds: input.embeds,
+		followUp: input.followUp,
+		followUpToInteractionId: input.followUpToInteractionId,
+		ephemeralForUserId: input.ephemeralForUserId,
 	};
 }

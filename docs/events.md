@@ -42,6 +42,29 @@ You can change subscriptions later using:
 - `disconnected`
 - `guildBot.commandError` (when command router handler throws)
 
+## Discord.js-style aliases
+
+The SDK also emits aliases that map to gateway events:
+
+- `ready` -> `guildBot.ready`
+- `error` -> `guildBot.error`
+- `messageCreate` -> `guildBot.messageCreate`
+- `messageUpdate` -> `guildBot.messageUpdate`
+- `messageDelete` -> `guildBot.messageDelete`
+- `reactionUpdate` -> `guildBot.reactionUpdate`
+- `interactionCreate` -> `guildBot.interactionCreate`
+- `guildCreate` -> `guildBot.installationCreate`
+- `guildDelete` -> `guildBot.installationDelete`
+- `memberAdd` -> `guildBot.memberJoin`
+- `memberRemove` -> `guildBot.memberLeave`
+- `memberKick` -> `guildBot.memberKick`
+- `memberBan` -> `guildBot.memberBan`
+- `memberTimeout` -> `guildBot.memberTimeout`
+- `memberRankUpdate` -> `guildBot.memberRankUpdate`
+- `auditLogCreate` -> `guildBot.auditLogCreate`
+- `commandError` -> `guildBot.commandError`
+- `close` -> `disconnected`
+
 ## Example
 
 ```ts

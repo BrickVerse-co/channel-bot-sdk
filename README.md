@@ -101,9 +101,12 @@ The command handler receives a `CommandContext` with:
 
 - `ctx.reply("text")`
 - `ctx.reply({ content, embeds })`
+- `ctx.reply("text", { ephemeral: true })`
+- `ctx.reply({ content, embeds, ephemeral: true })`
 - `ctx.replyMention("text")`
 - `ctx.replyEmbed(embed, optionalContent)`
 - `ctx.followUp("text")`
+- `ctx.followUp("text", { ephemeral: true })`
 - `ctx.timeoutMember(userId, durationMinutes)`
 - `ctx.clearMemberTimeout(userId)`
 - `ctx.hasPermission(permission)`
@@ -168,8 +171,11 @@ await client.connect();
 ## API Surface
 
 - `client.connect()`
+- `client.login()` (alias of `connect`)
 - `client.disconnect()`
+- `client.destroy()` (alias of `disconnect`)
 - `client.on(eventName, listener)`
+- `client.once(eventName, listener)`
 - `client.getSubscribedEvents()`
 - `client.setSubscribedEvents(events)`
 - `client.addSubscribedEvents(events)`
@@ -195,6 +201,15 @@ client.on("guildBot.installationCreate", (event) => {
 
 client.on("guildBot.installationDelete", (event) => {
 	console.log(`Uninstalled from ${event.guildName} (${event.guildId})`);
+});
+
+// discord.js-style aliases are also available:
+client.on("guildCreate", (event) => {
+	console.log(`Installed in ${event.guildName} (${event.guildId})`);
+});
+
+client.once("ready", () => {
+	console.log("Gateway ready");
 });
 ```
 

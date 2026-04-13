@@ -12,11 +12,23 @@ export class EventEmitter {
 		listener: Listener<TEvent>,
 	) {
 		const listeners = this.listeners.get(eventName) || new Set();
-		
+
 		listeners.add(listener as Listener<any>);
 		this.listeners.set(eventName, listeners);
 
 		return () => this.off(eventName, listener);
+	}
+
+	once<TEvent = GuildBotSocketEvent>(
+		eventName: string,
+		listener: Listener<TEvent>,
+	) {
+		const off = this.on<TEvent>(eventName, (event) => {
+			off();
+			listener(event);
+		});
+
+		return off;
 	}
 
 	off<TEvent = GuildBotSocketEvent>(

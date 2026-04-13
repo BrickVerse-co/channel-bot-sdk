@@ -14,11 +14,13 @@ import {
 import type {
 	ChannelBotClientOptions,
 	ChannelBotEmbed,
+	ChannelBotEventAliasMap,
 	GuildBotSlashCommand,
 	GuildBotSlashCommandOption,
 	ChannelBotMessage,
 	ChannelBotMessageInput,
 	ChannelBotEventMap,
+	ChannelBotWebSocketState,
 	GuildBotMeResponse,
 	GuildBotMemberTimeoutResponse,
 	GuildBotSocketEvent,
@@ -45,6 +47,25 @@ function normalizeSubscribedEvents(
 	return normalized;
 }
 
+const EVENT_ALIASES: Partial<Record<GuildBotSocketEvent["type"], string[]>> = {
+	"guildBot.ready": ["ready"],
+	"guildBot.error": ["error"],
+	"guildBot.messageCreate": ["messageCreate"],
+	"guildBot.messageUpdate": ["messageUpdate"],
+	"guildBot.messageDelete": ["messageDelete"],
+	"guildBot.reactionUpdate": ["reactionUpdate"],
+	"guildBot.interactionCreate": ["interactionCreate"],
+	"guildBot.installationCreate": ["guildCreate"],
+	"guildBot.installationDelete": ["guildDelete"],
+	"guildBot.memberJoin": ["memberAdd"],
+	"guildBot.memberLeave": ["memberRemove"],
+	"guildBot.memberKick": ["memberKick"],
+	"guildBot.memberBan": ["memberBan"],
+	"guildBot.memberTimeout": ["memberTimeout"],
+	"guildBot.memberRankUpdate": ["memberRankUpdate"],
+	"guildBot.auditLogCreate": ["auditLogCreate"],
+};
+
 export class ChannelBotClient {
 	private readonly token: string;
 	private readonly apiBaseUrl: string;
@@ -59,6 +80,7 @@ export class ChannelBotClient {
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 	private manuallyClosed = false;
 	private ws: WebSocket | null = null;
+	private ready = false;
 	private readonly events = new EventEmitter();
 	private commandRouter: CommandRouter | null = null;
 
@@ -92,6 +114,13 @@ export class ChannelBotClient {
 		return this.events.on<ChannelBotEventMap[K]>(eventName as string, listener);
 	}
 
+	onAlias<K extends keyof ChannelBotEventAliasMap>(
+		eventName: K,
+		listener: (event: ChannelBotEventAliasMap[K]) => void,
+	) {
+		return this.on(eventName, listener);
+	}
+
 	off<K extends keyof ChannelBotEventMap>(
 		eventName: K,
 		listener: (event: ChannelBotEventMap[K]) => void,
@@ -100,6 +129,77 @@ export class ChannelBotClient {
 			eventName as string,
 			listener,
 		);
+	}
+
+	onReady(listener: (event: ChannelBotEventAliasMap["ready"]) => void) {
+		return this.on("ready", listener);
+	}
+
+	onMessageCreate(
+		listener: (event: ChannelBotEventAliasMap["messageCreate"]) => void,
+	) {
+		return this.on("messageCreate", listener);
+	}
+
+	onMessageUpdate(
+		listener: (event: ChannelBotEventAliasMap["messageUpdate"]) => void,
+	) {
+		return this.on("messageUpdate", listener);
+	}
+
+	onMessageDelete(
+		listener: (event: ChannelBotEventAliasMap["messageDelete"]) => void,
+	) {
+		return this.on("messageDelete", listener);
+	}
+
+	onInteractionCreate(
+		listener: (event: ChannelBotEventAliasMap["interactionCreate"]) => void,
+	) {
+		return this.on("interactionCreate", listener);
+	}
+
+	onGuildCreate(
+		listener: (event: ChannelBotEventAliasMap["guildCreate"]) => void,
+	) {
+		return this.on("guildCreate", listener);
+	}
+
+	onGuildDelete(
+		listener: (event: ChannelBotEventAliasMap["guildDelete"]) => void,
+	) {
+		return this.on("guildDelete", listener);
+	}
+
+	onCommandError(
+		listener: (event: ChannelBotEventAliasMap["commandError"]) => void,
+	) {
+		return this.on("commandError", listener);
+	}
+
+	onClose(listener: (event: ChannelBotEventAliasMap["close"]) => void) {
+		return this.on("close", listener);
+	}
+
+	isReady() {
+		return this.ready;
+	}
+
+	isConnected() {
+		return this.ws?.readyState === WebSocket.OPEN;
+	}
+
+	getWebSocketReadyState() {
+		return this.ws?.readyState ?? null;
+	}
+
+	getWebSocketState(): ChannelBotWebSocketState {
+		const state = this.getWebSocketReadyState();
+		if (state === null) return "UNINITIALIZED";
+		if (state === WebSocket.CONNECTING) return "CONNECTING";
+		if (state === WebSocket.OPEN) return "OPEN";
+		if (state === WebSocket.CLOSING) return "CLOSING";
+		return "CLOSED";
 	}
 
 	useCommandRouter(router: CommandRouter) {
@@ -156,6 +256,7 @@ export class ChannelBotClient {
 
 	async connect(): Promise<void> {
 		this.manuallyClosed = false;
+		this.ready = false;
 		if (this.ws && this.ws.readyState <= 1) return;
 
 		await new Promise<void>((resolve, reject) => {
@@ -183,6 +284,10 @@ export class ChannelBotClient {
 
 				this.events.emit("raw", parsed);
 				this.events.emit(parsed.type, parsed);
+				const aliases = EVENT_ALIASES[parsed.type] || [];
+				for (const alias of aliases) {
+					this.events.emit(alias, parsed);
+				}
 
 				if (
 					parsed.type === "guildBot.interactionCreate" &&
@@ -194,10 +299,16 @@ export class ChannelBotClient {
 							error,
 							event: parsed,
 						});
+						this.events.emit("commandError", {
+							type: "guildBot.commandError",
+							error,
+							event: parsed,
+						});
 					});
 				}
 
 				if (parsed.type === "guildBot.ready" && !resolved) {
+					this.ready = true;
 					resolved = true;
 					if (this.subscribedEvents.length > 0) {
 						this.subscribeToEvents(this.subscribedEvents);
@@ -219,20 +330,24 @@ export class ChannelBotClient {
 				}
 
 				if (parsed.type === "guildBot.error" && !resolved) {
+					this.ready = false;
 					resolved = true;
 					reject(new Error(parsed.message || "Guild bot websocket error"));
 				}
 			};
 
 			ws.onerror = () => {
+				this.ready = false;
 				if (resolved) return;
 				resolved = true;
 				reject(new Error("Guild bot websocket connection failed"));
 			};
 
 			ws.onclose = () => {
+				this.ready = false;
 				this.ws = null;
 				this.events.emit("disconnected", { type: "disconnected" });
+				this.events.emit("close", { type: "disconnected" });
 				if (!this.manuallyClosed && this.autoReconnect) {
 					this.scheduleReconnect();
 				}
@@ -242,6 +357,24 @@ export class ChannelBotClient {
 				}
 			};
 		});
+	}
+
+	once<K extends keyof ChannelBotEventMap>(
+		eventName: K,
+		listener: (event: ChannelBotEventMap[K]) => void,
+	) {
+		return this.events.once<ChannelBotEventMap[K]>(
+			eventName as string,
+			listener,
+		);
+	}
+
+	login() {
+		return this.connect();
+	}
+
+	destroy() {
+		this.disconnect();
 	}
 
 	private scheduleReconnect() {
@@ -255,6 +388,7 @@ export class ChannelBotClient {
 
 	disconnect() {
 		this.manuallyClosed = true;
+		this.ready = false;
 
 		if (this.reconnectTimer) {
 			clearTimeout(this.reconnectTimer);
@@ -451,5 +585,13 @@ export class ChannelBotClient {
 			`/v3/social/guild-bots/@me/guilds/${input.guildId}/members/${input.userId}/timeout`,
 			{ method: "DELETE" },
 		);
+	}
+
+	timeout(guildId: string, userId: string, durationMinutes: number) {
+		return this.timeoutMember({ guildId, userId, durationMinutes });
+	}
+
+	removeTimeout(guildId: string, userId: string) {
+		return this.clearMemberTimeout({ guildId, userId });
 	}
 }

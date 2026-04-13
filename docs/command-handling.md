@@ -71,6 +71,18 @@ Each handler receives a `CommandContext` with:
 - `ctx.hasAllPermissions(permissions)`
 - `ctx.canManageMembers()`
 
+`reply` and `followUp` support ephemeral responses for the invoking user:
+
+```ts
+await ctx.reply("This is private", { ephemeral: true });
+await ctx.reply({
+	content: "Only you can see this",
+	ephemeral: true,
+});
+
+await ctx.followUp("Private follow-up", { ephemeral: true });
+```
+
 ## Permission checks
 
 ```ts
