@@ -189,6 +189,25 @@ export class ChannelBotClient {
 		);
 	}
 
+	sendFollowUp(input: {
+		guildId: string;
+		channelId: string;
+		interactionId: string;
+		content?: string;
+		embeds?: ChannelBotEmbed[];
+		ephemeralForUserId?: string;
+	}) {
+		return this.sendMessage({
+			guildId: input.guildId,
+			channelId: input.channelId,
+			content: input.content,
+			embeds: input.embeds,
+			followUp: true,
+			followUpToInteractionId: input.interactionId,
+			ephemeralForUserId: input.ephemeralForUserId,
+		});
+	}
+
 	sendEmbed(input: {
 		guildId: string;
 		channelId: string;

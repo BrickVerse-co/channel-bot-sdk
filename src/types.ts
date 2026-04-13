@@ -18,6 +18,9 @@ export type ChannelBotEmbed = {
 export type ChannelBotMessage = {
 	id: string;
 	content: string;
+	ephemeralForUserId?: string;
+	followUpToInteractionId?: string;
+	isFollowUp?: boolean;
 	embeds?: ChannelBotEmbed[] | null;
 	isPinned?: boolean;
 	createdAt: string;
@@ -35,6 +38,7 @@ export type ChannelBotMessage = {
 };
 
 export type GuildBotInteraction = {
+	interactionId: string;
 	commandName: string;
 	rawInput: string;
 	arguments: string[];
@@ -143,4 +147,7 @@ export type ChannelBotMessageInput = {
 	channelId: string;
 	content?: string;
 	embeds?: ChannelBotEmbed[];
+	followUp?: boolean;
+	followUpToInteractionId?: string;
+	ephemeralForUserId?: string;
 };
