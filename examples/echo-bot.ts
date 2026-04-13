@@ -1,6 +1,10 @@
 // (c) 2026 Meta Games LLC. All rights reserved.
 
-import { ChannelBotClient, CommandRouter } from "../src/index";
+import {
+	ChannelBotClient,
+	CommandRouter,
+	DEFAULT_ROUTER_SUBSCRIBED_EVENTS,
+} from "../src/index";
 
 declare const process: {
 	env: Record<string, string | undefined>;
@@ -14,6 +18,7 @@ async function main() {
 		token,
 		apiBaseUrl: process.env.BOT_API_BASE_URL || "https://api.brickverse.gg",
 		autoRegisterCommands: true,
+		subscribedEvents: DEFAULT_ROUTER_SUBSCRIBED_EVENTS,
 	});
 
 	const router = new CommandRouter()

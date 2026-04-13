@@ -3,6 +3,7 @@
 import {
 	ChannelBotClient,
 	CommandRouter,
+	DEFAULT_ROUTER_SUBSCRIBED_EVENTS,
 	GuildPermissions,
 } from "../src/index";
 
@@ -18,6 +19,12 @@ async function main() {
 		token,
 		apiBaseUrl: process.env.BOT_API_BASE_URL || "https://api.brickverse.gg",
 		autoRegisterCommands: true,
+		subscribedEvents: [
+			...DEFAULT_ROUTER_SUBSCRIBED_EVENTS,
+			"guildBot.memberJoin",
+			"guildBot.memberLeave",
+			"guildBot.memberTimeout",
+		],
 	});
 
 	const router = new CommandRouter()

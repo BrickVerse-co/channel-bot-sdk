@@ -7,6 +7,10 @@ import {
 	requestWithBotToken,
 } from "./http";
 import { CommandRouter } from "./commands";
+import {
+	DEFAULT_ROUTER_SUBSCRIBED_EVENTS,
+	GUILD_BOT_SUBSCRIBABLE_EVENTS,
+} from "./types";
 import type {
 	ChannelBotClientOptions,
 	ChannelBotEmbed,
@@ -18,7 +22,28 @@ import type {
 	GuildBotMeResponse,
 	GuildBotMemberTimeoutResponse,
 	GuildBotSocketEvent,
+	GuildBotSubscribableEvent,
 } from "./types";
+
+const SUBSCRIBABLE_EVENT_SET = new Set<string>(GUILD_BOT_SUBSCRIBABLE_EVENTS);
+
+function normalizeSubscribedEvents(
+	events: readonly string[],
+): GuildBotSubscribableEvent[] {
+	const normalized: GuildBotSubscribableEvent[] = [];
+	const seen = new Set<string>();
+
+	for (const rawEvent of events) {
+		if (typeof rawEvent !== "string") continue;
+		const eventName = rawEvent.trim();
+		if (!eventName || seen.has(eventName)) continue;
+		if (!SUBSCRIBABLE_EVENT_SET.has(eventName)) continue;
+		seen.add(eventName);
+		normalized.push(eventName as GuildBotSubscribableEvent);
+	}
+
+	return normalized;
+}
 
 export class ChannelBotClient {
 	private readonly token: string;
@@ -30,7 +55,7 @@ export class ChannelBotClient {
 	private readonly reconnectDelayMs: number;
 	private readonly autoRegisterCommands: boolean;
 	private readonly pruneMissingCommands: boolean;
-	private readonly subscribedEvents: string[];
+	private subscribedEvents: GuildBotSubscribableEvent[];
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 	private manuallyClosed = false;
 	private ws: WebSocket | null = null;
@@ -55,12 +80,9 @@ export class ChannelBotClient {
 		this.reconnectDelayMs = Math.max(250, options.reconnectDelayMs || 2500);
 		this.autoRegisterCommands = options.autoRegisterCommands !== false;
 		this.pruneMissingCommands = options.pruneMissingCommands === true;
-		this.subscribedEvents = Array.isArray(options.subscribedEvents)
-			? options.subscribedEvents.filter(
-					(eventName) =>
-						typeof eventName === "string" && eventName.trim().length > 0,
-				)
-			: [];
+		this.subscribedEvents = normalizeSubscribedEvents(
+			options.subscribedEvents || [],
+		);
 	}
 
 	on<K extends keyof ChannelBotEventMap>(
@@ -82,6 +104,7 @@ export class ChannelBotClient {
 
 	useCommandRouter(router: CommandRouter) {
 		this.commandRouter = router;
+		this.addSubscribedEvents(DEFAULT_ROUTER_SUBSCRIBED_EVENTS);
 
 		if (this.ws && this.ws.readyState === 1) {
 			if (this.subscribedEvents.length > 0) {
@@ -94,6 +117,41 @@ export class ChannelBotClient {
 		}
 
 		return this;
+	}
+
+	setSubscribedEvents(events: GuildBotSubscribableEvent[]) {
+		this.subscribedEvents = normalizeSubscribedEvents(events);
+
+		if (
+			this.ws &&
+			this.ws.readyState === 1 &&
+			this.subscribedEvents.length > 0
+		) {
+			this.subscribeToEvents(this.subscribedEvents);
+		}
+
+		return this;
+	}
+
+	addSubscribedEvents(events: GuildBotSubscribableEvent[]) {
+		this.subscribedEvents = normalizeSubscribedEvents([
+			...this.subscribedEvents,
+			...events,
+		]);
+
+		if (
+			this.ws &&
+			this.ws.readyState === 1 &&
+			this.subscribedEvents.length > 0
+		) {
+			this.subscribeToEvents(this.subscribedEvents);
+		}
+
+		return this;
+	}
+
+	getSubscribedEvents() {
+		return [...this.subscribedEvents];
 	}
 
 	async connect(): Promise<void> {
@@ -118,7 +176,7 @@ export class ChannelBotClient {
 				let parsed: GuildBotSocketEvent;
 				try {
 					parsed = JSON.parse(String(rawEvent.data)) as GuildBotSocketEvent;
-				} catch(err) {
+				} catch (err) {
 					console.error("Failed to parse guild bot websocket message", err);
 					return;
 				}
@@ -209,13 +267,15 @@ export class ChannelBotClient {
 		}
 	}
 
-	subscribeToEvents(events: string[]) {
+	subscribeToEvents(events: GuildBotSubscribableEvent[]) {
 		if (!this.ws || this.ws.readyState !== 1) return;
-		console.debug("Subscribing to guild bot events:", events);
+		const normalized = normalizeSubscribedEvents(events);
+		if (normalized.length === 0) return;
+		console.debug("Subscribing to guild bot events:", normalized);
 		this.ws.send(
 			JSON.stringify({
 				type: "guildBot.subscribe",
-				events,
+				events: normalized,
 			}),
 		);
 	}

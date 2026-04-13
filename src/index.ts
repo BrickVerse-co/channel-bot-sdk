@@ -14,6 +14,10 @@ export {
 	CommandRouter,
 	messageInputFromInteraction,
 } from "./commands";
+export {
+	GUILD_BOT_SUBSCRIBABLE_EVENTS,
+	DEFAULT_ROUTER_SUBSCRIBED_EVENTS,
+} from "./types";
 export type {
 	ChannelBotClientOptions,
 	ChannelBotEmbed,
@@ -31,4 +35,5 @@ export type {
 	ChannelBotEventMap,
 	GuildBotMeResponse,
 	GuildBotSocketEvent,
+	GuildBotSubscribableEvent,
 } from "./types";

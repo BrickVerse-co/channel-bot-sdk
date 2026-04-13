@@ -194,6 +194,32 @@ export type GuildBotSocketEvent =
 			};
 	  };
 
+export const GUILD_BOT_SUBSCRIBABLE_EVENTS = [
+	"guildBot.messageCreate",
+	"guildBot.messageUpdate",
+	"guildBot.messageDelete",
+	"guildBot.reactionUpdate",
+	"guildBot.interactionCreate",
+	"guildBot.installationCreate",
+	"guildBot.installationDelete",
+	"guildBot.memberJoin",
+	"guildBot.memberLeave",
+	"guildBot.memberKick",
+	"guildBot.memberBan",
+	"guildBot.memberTimeout",
+	"guildBot.memberRankUpdate",
+	"guildBot.auditLogCreate",
+] as const;
+
+export type GuildBotSubscribableEvent =
+	(typeof GUILD_BOT_SUBSCRIBABLE_EVENTS)[number];
+
+export const DEFAULT_ROUTER_SUBSCRIBED_EVENTS: GuildBotSubscribableEvent[] = [
+	"guildBot.interactionCreate",
+	"guildBot.installationCreate",
+	"guildBot.installationDelete",
+];
+
 export type GuildBotCommandErrorEvent = {
 	type: "guildBot.commandError";
 	error: unknown;
@@ -260,7 +286,7 @@ export type ChannelBotClientOptions = {
 	reconnectDelayMs?: number;
 	autoRegisterCommands?: boolean;
 	pruneMissingCommands?: boolean;
-	subscribedEvents?: string[];
+	subscribedEvents?: GuildBotSubscribableEvent[];
 };
 
 export type ChannelBotMessageInput = {

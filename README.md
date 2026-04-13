@@ -11,9 +11,11 @@ TypeScript SDK for building Brickverse guild channel bots.
 - Examples and docs
 
 ## Creating a Bot Account
+
 A BrickVerse.gg bot account is required, you can create one for free at https://brickverse.gg/my/guild-bots.
 
 ### Getting your bot verified
+
 Verifications are issued at the discretion of BrickVerse automatically, we only grant verification checkmark to tools being popularly used in large amount of guilds, official partnerships, etc.
 
 ## Install
@@ -25,11 +27,16 @@ npm i @metagames/channel-bot-sdk
 ## Quick Example
 
 ```ts
-import { ChannelBotClient, CommandRouter } from "@metagames/channel-bot-sdk";
+import {
+	ChannelBotClient,
+	CommandRouter,
+	DEFAULT_ROUTER_SUBSCRIBED_EVENTS,
+} from "@metagames/channel-bot-sdk";
 
 const client = new ChannelBotClient({
 	token: process.env.BOT_TOKEN!,
 	apiBaseUrl: "https://api.brickverse.gg",
+	subscribedEvents: DEFAULT_ROUTER_SUBSCRIBED_EVENTS,
 });
 
 const router = new CommandRouter()
@@ -48,6 +55,17 @@ client.on("guildBot.ready", (event) => {
 
 await client.connect();
 ```
+
+## Event Subscriptions (Required vs Optional)
+
+The gateway supports filtered subscriptions. You choose which events your bot receives with `subscribedEvents`.
+
+- Required for slash command handling: `guildBot.interactionCreate`
+- Strongly recommended operational defaults: `guildBot.installationCreate`, `guildBot.installationDelete`
+
+These three defaults are exported as `DEFAULT_ROUTER_SUBSCRIBED_EVENTS` and are used in SDK examples. If you use `CommandRouter`, the SDK also auto-adds these defaults so command handling keeps working.
+
+Add more events only when your bot needs them (for example, member moderation or message analytics) to reduce gateway traffic and simplify handlers.
 
 ## Permission-Aware Events
 
@@ -103,6 +121,7 @@ const client = new ChannelBotClient({
 	apiBaseUrl: "https://api.brickverse.gg",
 	autoRegisterCommands: true, // default true
 	pruneMissingCommands: false, // default false
+	subscribedEvents: DEFAULT_ROUTER_SUBSCRIBED_EVENTS,
 });
 
 const router = new CommandRouter()
@@ -151,6 +170,9 @@ await client.connect();
 - `client.connect()`
 - `client.disconnect()`
 - `client.on(eventName, listener)`
+- `client.getSubscribedEvents()`
+- `client.setSubscribedEvents(events)`
+- `client.addSubscribedEvents(events)`
 - `client.getMe()`
 - `client.sendMessage({ guildId, channelId, content, embeds })`
 - `client.sendEmbed({ guildId, channelId, embed, content })`

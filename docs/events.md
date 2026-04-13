@@ -2,6 +2,21 @@
 
 All events are available through `client.on(eventName, listener)`.
 
+## Subscription model
+
+Use `subscribedEvents` in `ChannelBotClient` to choose which gateway events your bot receives.
+
+Use `DEFAULT_ROUTER_SUBSCRIBED_EVENTS` for slash-command bots. It includes:
+
+- `guildBot.interactionCreate` (required for command routing)
+- `guildBot.installationCreate` and `guildBot.installationDelete` (recommended lifecycle defaults)
+
+You can change subscriptions later using:
+
+- `client.setSubscribedEvents(events)`
+- `client.addSubscribedEvents(events)`
+- `client.getSubscribedEvents()`
+
 ## Gateway events
 
 - `guildBot.ready`
@@ -13,6 +28,13 @@ All events are available through `client.on(eventName, listener)`.
 - `guildBot.interactionCreate`
 - `guildBot.installationCreate`
 - `guildBot.installationDelete`
+- `guildBot.memberJoin`
+- `guildBot.memberLeave`
+- `guildBot.memberKick`
+- `guildBot.memberBan`
+- `guildBot.memberTimeout`
+- `guildBot.memberRankUpdate`
+- `guildBot.auditLogCreate`
 
 ## Utility events
 
