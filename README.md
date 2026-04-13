@@ -176,6 +176,13 @@ await client.connect();
 - `client.destroy()` (alias of `disconnect`)
 - `client.on(eventName, listener)`
 - `client.once(eventName, listener)`
+- `client.onAlias(eventName, listener)`
+- `client.onReady(listener)` / `client.onClose(listener)`
+- `client.onMessageCreate(listener)` / `client.onInteractionCreate(listener)`
+- `client.onGuildCreate(listener)` / `client.onGuildDelete(listener)`
+- `client.onCommandError(listener)`
+- `client.isReady()` / `client.isConnected()`
+- `client.getWebSocketReadyState()` / `client.getWebSocketState()`
 - `client.getSubscribedEvents()`
 - `client.setSubscribedEvents(events)`
 - `client.addSubscribedEvents(events)`
@@ -189,6 +196,8 @@ await client.connect();
 - `client.syncCommandRouterSlashCommands()`
 - `client.timeoutMember({ guildId, userId, durationMinutes })`
 - `client.clearMemberTimeout({ guildId, userId })`
+- `client.timeout(guildId, userId, durationMinutes)`
+- `client.removeTimeout(guildId, userId)`
 
 ## Installation Lifecycle Events
 

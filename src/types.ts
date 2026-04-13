@@ -13,6 +13,12 @@ export type ChannelBotEmbed = {
 	color?: string;
 	footer?: string;
 	fields?: ChannelBotEmbedField[];
+	buttons?: Array<{
+		id: string;
+		label: string;
+		style?: "primary" | "secondary" | "success" | "danger";
+		disabled?: boolean;
+	}>;
 };
 
 export type ChannelBotMessage = {
@@ -50,9 +56,12 @@ export type ChannelBotMessage = {
 
 export type GuildBotInteraction = {
 	interactionId: string;
+	interactionType?: "SLASH_COMMAND" | "BUTTON";
 	commandName: string;
 	rawInput: string;
 	arguments: string[];
+	messageId?: string;
+	buttonId?: string;
 	user: {
 		id: string;
 		username: string;

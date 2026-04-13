@@ -45,6 +45,10 @@ client.on("guildBot.ready", (event) => {
 	console.log("ready", event.bot.id);
 });
 
+client.onReady(() => {
+	console.log("ready via helper");
+});
+
 client.on("guildBot.messageCreate", (event) => {
 	console.log(event.message.content);
 });
@@ -56,12 +60,22 @@ client.on("guildBot.installationCreate", (event) => {
 client.on("guildBot.installationDelete", (event) => {
 	console.log(`Uninstalled from ${event.guildName} (${event.guildId})`);
 });
+
+client.onMessageCreate((event) => {
+	console.log("message helper", event.message.id);
+});
+
+client.onGuildCreate((event) => {
+	console.log("guild created helper", event.guildId);
+});
 ```
 
 ## 4. Connect
 
 ```ts
 await client.connect();
+
+console.log(client.isReady(), client.isConnected(), client.getWebSocketState());
 ```
 
 ## 5. Send messages manually
