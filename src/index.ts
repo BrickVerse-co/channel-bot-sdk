@@ -32,6 +32,7 @@ export type {
 	GuildBotSlashCommand,
 	GuildBotSlashCommandOption,
 	GuildBotInteraction,
+	GuildBotInteractionType,
 	GuildBotInstallationEvent,
 	GuildBotMemberEvent,
 	GuildBotMemberTimeoutResponse,

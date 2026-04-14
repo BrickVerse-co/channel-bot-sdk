@@ -5,6 +5,7 @@ import type {
 	ChannelBotMessage,
 	ChannelBotMessageInput,
 	GuildBotInteraction,
+	GuildBotInteractionType,
 	GuildBotSlashCommandOption,
 	GuildBotSocketEvent,
 } from "./types";
@@ -60,6 +61,46 @@ export class CommandContext {
 
 	get commandName() {
 		return this.interaction.commandName;
+	}
+
+	get interactionType(): GuildBotInteractionType {
+		return this.interaction.interactionType || "SLASH_COMMAND";
+	}
+
+	get buttonId() {
+		return this.interaction.buttonId;
+	}
+
+	get selectId() {
+		return this.interaction.selectId;
+	}
+
+	get selectedValues() {
+		return this.interaction.selectedValues || [];
+	}
+
+	get modalId() {
+		return this.interaction.modalId;
+	}
+
+	get modalValues() {
+		return this.interaction.modalValues || {};
+	}
+
+	isSlashCommand() {
+		return this.interactionType === "SLASH_COMMAND";
+	}
+
+	isButtonInteraction() {
+		return this.interactionType === "BUTTON";
+	}
+
+	isSelectMenuInteraction() {
+		return this.interactionType === "SELECT_MENU";
+	}
+
+	isModalSubmitInteraction() {
+		return this.interactionType === "MODAL_SUBMIT";
 	}
 
 	get args() {
@@ -218,6 +259,16 @@ export class CommandRouter {
 	private readonly handlers = new Map<string, CommandHandler>();
 	private readonly registrations = new Map<string, CommandRegistration>();
 
+	private registerHandler(rawKey: string, handler: CommandHandler): string {
+		const normalized = rawKey.trim().toLowerCase();
+		if (!normalized) throw new Error("Command name is required");
+		if (this.handlers.has(normalized)) {
+			console.warn(`Overwriting existing command handler for ${normalized}`);
+		}
+		this.handlers.set(normalized, handler);
+		return normalized;
+	}
+
 	command(
 		name: string,
 		handler: CommandHandler,
@@ -226,13 +277,7 @@ export class CommandRouter {
 			options?: GuildBotSlashCommandOption[];
 		},
 	): this {
-		const normalized = name.trim().toLowerCase();
-		if (!normalized) throw new Error("Command name is required");
-		if (this.handlers.has(normalized)) {
-			console.warn(`Overwriting existing command handler for /${normalized}`);
-		}
-
-		this.handlers.set(normalized, handler);
+		const normalized = this.registerHandler(name, handler);
 
 		this.registrations.set(normalized, {
 			name: normalized,
@@ -245,6 +290,21 @@ export class CommandRouter {
 					: undefined,
 		});
 
+		return this;
+	}
+
+	button(id: string, handler: CommandHandler): this {
+		this.registerHandler(`button:${id}`, handler);
+		return this;
+	}
+
+	selectMenu(id: string, handler: CommandHandler): this {
+		this.registerHandler(`select:${id}`, handler);
+		return this;
+	}
+
+	modal(id: string, handler: CommandHandler): this {
+		this.registerHandler(`modal:${id}`, handler);
 		return this;
 	}
 

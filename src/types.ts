@@ -19,12 +19,42 @@ export type ChannelBotEmbed = {
 		style?: "primary" | "secondary" | "success" | "danger";
 		disabled?: boolean;
 	}>;
+	selectMenus?: Array<{
+		id: string;
+		placeholder?: string;
+		minValues?: number;
+		maxValues?: number;
+		disabled?: boolean;
+		options: Array<{
+			label: string;
+			value: string;
+			description?: string;
+			default?: boolean;
+		}>;
+	}>;
+	modals?: Array<{
+		id: string;
+		title: string;
+		submitLabel?: string;
+		fields: Array<{
+			id: string;
+			label: string;
+			placeholder?: string;
+			required?: boolean;
+			multiline?: boolean;
+			minLength?: number;
+			maxLength?: number;
+			pattern?: string;
+		}>;
+	}>;
 };
 
 export type ChannelBotMessage = {
 	id: string;
 	content: string;
 	ephemeralForUserId?: string;
+	interactionAccessToken?: string;
+	interactionSchemaHash?: string;
 	followUpToInteractionId?: string;
 	isFollowUp?: boolean;
 	embeds?: ChannelBotEmbed[] | null;
@@ -56,12 +86,16 @@ export type ChannelBotMessage = {
 
 export type GuildBotInteraction = {
 	interactionId: string;
-	interactionType?: "SLASH_COMMAND" | "BUTTON";
+	interactionType?: GuildBotInteractionType;
 	commandName: string;
 	rawInput: string;
 	arguments: string[];
 	messageId?: string;
 	buttonId?: string;
+	selectId?: string;
+	selectedValues?: string[];
+	modalId?: string;
+	modalValues?: Record<string, string>;
 	user: {
 		id: string;
 		username: string;
@@ -72,6 +106,12 @@ export type GuildBotInteraction = {
 		isGuildAdmin?: boolean;
 	};
 };
+
+export type GuildBotInteractionType =
+	| "SLASH_COMMAND"
+	| "BUTTON"
+	| "SELECT_MENU"
+	| "MODAL_SUBMIT";
 
 export type GuildBotInstallationEvent = {
 	type: "guildBot.installationCreate" | "guildBot.installationDelete";

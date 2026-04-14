@@ -43,6 +43,17 @@ const router = new CommandRouter()
 	.command("ping", async (ctx) => {
 		await ctx.replyMention("pong");
 	})
+	.button("verify", async (ctx) => {
+		await ctx.replyEphemeral("Verification flow started.");
+	})
+	.selectMenu("role-picker", async (ctx) => {
+		await ctx.reply(`You selected: ${ctx.selectedValues.join(", ") || "none"}`);
+	})
+	.modal("support-form", async (ctx) => {
+		await ctx.replyEphemeral(
+			`Received form fields: ${Object.keys(ctx.modalValues).join(", ")}`,
+		);
+	})
 	.command("echo", async (ctx) => {
 		await ctx.reply(ctx.args.join(" ") || "Nothing to echo.");
 	});
@@ -113,6 +124,23 @@ The command handler receives a `CommandContext` with:
 - `ctx.hasAnyPermission(permissions)`
 - `ctx.hasAllPermissions(permissions)`
 - `ctx.canManageMembers()`
+- `ctx.interactionType`
+- `ctx.buttonId`
+- `ctx.selectId`
+- `ctx.selectedValues`
+- `ctx.modalId`
+- `ctx.modalValues`
+- `ctx.isSlashCommand()`
+- `ctx.isButtonInteraction()`
+- `ctx.isSelectMenuInteraction()`
+- `ctx.isModalSubmitInteraction()`
+
+Router interaction helpers:
+
+- `router.command(name, handler)` for slash commands (auto-registered by default)
+- `router.button(id, handler)` for button interactions (`button:<id>`)
+- `router.selectMenu(id, handler)` for select menu interactions (`select:<id>`)
+- `router.modal(id, handler)` for modal submissions (`modal:<id>`)
 
 ## Automatic Slash Command Registration
 
