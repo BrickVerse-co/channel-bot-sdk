@@ -1,6 +1,6 @@
 {
 	"name": "@metagames/channel-bot-sdk",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Brickverse guild channel bot SDK",
 	"type": "module",
 	"main": "./dist/index.js",
