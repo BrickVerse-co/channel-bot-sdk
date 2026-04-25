@@ -30,6 +30,7 @@ export const GuildPermissions = {
 	MANAGE_NICKNAMES: 1n << 27n,
 	MANAGE_GUILD_PROFILE: 1n << 28n,
 	VIEW_GUILD_ANALYTICS: 1n << 29n,
+	MANAGE_JOB_APPLICATIONS: 1n << 30n, // Manage talent job applications
 } as const;
 
 export type GuildPermission =
